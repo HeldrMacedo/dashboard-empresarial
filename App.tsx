@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Store, 
   DollarSign, 
@@ -13,7 +13,7 @@ import {
   Calendar,
   LayoutDashboard
 } from 'lucide-react';
-import { generateMockData, getStores, getSummary } from './services/dataService';
+import { generateMockData, getStores, getSummary, fetchApiSalesData, mapApiToSalesSummary } from './services/dataService';
 import { SummaryCard } from './components/SummaryCard';
 import { StoreEvolutionChart } from './components/StoreEvolutionChart';
 import { StoreComparisonPieChart } from './components/StoreComparisonPieChart';
@@ -63,7 +63,48 @@ const App: React.FC = () => {
     return data;
   }, [globalStartDate, globalEndDate, globalStoreId]);
 
-  const globalSummary = useMemo(() => getSummary(globalData), [globalData]);
+  // Fetch API data for summary cards
+  const [apiSummary, setApiSummary] = useState<{ total_notas: number; total_cancelados: number; total_devolvido: number; total_liquido: number; total_vendabl: number; total_liquidobl: number }>({
+    total_notas: 0,
+    total_cancelados: 0,
+    total_devolvido: 0,
+    total_liquido: 0,
+    total_vendabl: 0,
+    total_liquidobl: 0,
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch API data when dates or store selection changes
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const apiData = await fetchApiSalesData(globalStartDate, globalEndDate);
+        const summary = mapApiToSalesSummary(apiData, globalStoreId);
+        setApiSummary(summary);
+      } catch (err) {
+        console.error('Error fetching API data:', err);
+        setError('Erro ao carregar dados da API');
+        // Set empty summary in case of error
+        setApiSummary({
+          total_notas: 0,
+          total_cancelados: 0,
+          total_devolvido: 0,
+          total_liquido: 0,
+          total_vendabl: 0,
+          total_liquidobl: 0,
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [globalStartDate, globalEndDate, globalStoreId]);
+
+  const globalSummary = apiSummary;
 
   const analysisData = useMemo(() => {
     const rawData = generateMockData(analysisStartDate, analysisEndDate);
@@ -159,13 +200,30 @@ const App: React.FC = () => {
         </div>
 
         {/* Section 1: Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-          <SummaryCard title="Total Notas" value={globalSummary.total_notas} icon={DollarSign} colorClass="bg-blue-600" />
-          <SummaryCard title="Total Cancelados" value={globalSummary.total_cancelados} icon={AlertCircle} colorClass="bg-red-500" />
-          <SummaryCard title="Total Devolvido" value={globalSummary.total_devolvido} icon={Archive} colorClass="bg-orange-500" />
-          <SummaryCard title="Total Líquido" value={globalSummary.total_liquido} icon={TrendingUp} colorClass="bg-emerald-600" />
-          <SummaryCard title="Venda Online (BL)" value={globalSummary.total_vendabl} icon={ShoppingCart} colorClass="bg-indigo-500" />
-          <SummaryCard title="Líquido Online (BL)" value={globalSummary.total_liquidobl} icon={CreditCard} colorClass="bg-purple-600" />
+        <div className="space-y-4">
+          {loading && (
+            <div className="text-center py-8">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+              <p className="mt-2 text-slate-600">Carregando dados...</p>
+            </div>
+          )}
+          
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+              {error}
+            </div>
+          )}
+          
+          {!loading && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+              <SummaryCard title="Total Notas" value={globalSummary.total_notas} icon={DollarSign} colorClass="bg-blue-600" />
+              <SummaryCard title="Total Cancelados" value={globalSummary.total_cancelados} icon={AlertCircle} colorClass="bg-red-500" />
+              <SummaryCard title="Total Devolvido" value={globalSummary.total_devolvido} icon={Archive} colorClass="bg-orange-500" />
+              <SummaryCard title="Total Líquido" value={globalSummary.total_liquido} icon={TrendingUp} colorClass="bg-emerald-600" />
+              <SummaryCard title="Venda Online (BL)" value={globalSummary.total_vendabl} icon={ShoppingCart} colorClass="bg-indigo-500" />
+              <SummaryCard title="Líquido Online (BL)" value={globalSummary.total_liquidobl} icon={CreditCard} colorClass="bg-purple-600" />
+            </div>
+          )}
         </div>
 
         {/* Section 2: Stores Comparison Pie Chart */}
