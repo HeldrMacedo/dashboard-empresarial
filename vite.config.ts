@@ -1,4 +1,4 @@
-import path from 'path';
+
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 
@@ -8,6 +8,13 @@ export default defineConfig(({ mode }) => {
       server: {
         port: 3000,
         host: '0.0.0.0',
+        proxy: {
+          '/sec/resumoVendasPeriodo': {
+            target: 'https://serv-api.ce.br.saveincloud.net.br',
+            changeOrigin: true,
+            secure: true,
+          },
+        },
       },
       plugins: [react()],
       define: {
@@ -16,7 +23,7 @@ export default defineConfig(({ mode }) => {
       },
       resolve: {
         alias: {
-          '@': path.resolve(__dirname, '.'),
+           '@': '.',
         }
       }
     };

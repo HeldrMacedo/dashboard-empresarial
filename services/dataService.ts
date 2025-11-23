@@ -92,7 +92,7 @@ export interface ApiSalesMetric {
 
 // Function to fetch data from the API
 export const fetchApiSalesData = async (startDate: string, endDate: string): Promise<ApiSalesMetric[]> => {
-  const response = await fetch('https://serv-api.ce.br.saveincloud.net.br/sec/resumoVendasPeriodo', {
+  const response = await fetch('/sec/resumoVendasPeriodo', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
