@@ -2,12 +2,12 @@ import { DailySalesData, SalesSummary, StoreOption } from '../types';
 import { getDatesInRange } from '../utils';
 
 const STORES: StoreOption[] = [
-  { id: '002', name: 'Loja Centro' },
-  { id: '003', name: 'Loja Shopping' },
-  { id: '004', name: 'Loja Norte' },
-  { id: '005', name: 'Loja Sul' },
-  { id: '006', name: 'Loja Express' },
-  { id: '007', name: 'Loja Matriz' },
+  { id: '002', name: 'NATAL' },
+  { id: '003', name: 'MACEIÓ' },
+  { id: '004', name: 'ARACAJU' },
+  { id: '005', name: 'CAMPINA GRANDE' },
+  { id: '006', name: 'JOÃO PESSOA' },
+  { id: '007', name: 'RECIFE' },
 ];
 
 // Helper to generate random consistent-ish data
@@ -114,7 +114,6 @@ export const fetchApiSalesData = async (startDate: string, endDate: string): Pro
 
 // Function to map API response to SalesSummary based on store selection
 export const mapApiToSalesSummary = (apiData: ApiSalesMetric[], storeId: string): SalesSummary => {
-  // Create a mapping from API titles to our summary keys
   const titleToKeyMap: Record<string, keyof SalesSummary> = {
     'Total Notas': 'total_notas',
     'Total Cancelados': 'total_cancelados',
@@ -136,12 +135,40 @@ export const mapApiToSalesSummary = (apiData: ApiSalesMetric[], storeId: string)
   apiData.forEach(item => {
     const key = titleToKeyMap[item.titulo];
     if (key) {
-      // If storeId is empty (meaning "All Stores"), use total_operacao
-      // Otherwise, use the value for the specific store
       const value = storeId ? (item[storeId as keyof ApiSalesMetric] as number || 0) : item.total_operacao;
       summary[key] = value;
     }
   });
 
   return summary;
+};
+
+export interface ApiStoreDailyRow {
+  data: string;
+  total_notas: number;
+  total_cancelados: number;
+  total_devolvido: number;
+  total_liquido: number;
+  total_vendabl: number;
+  total_canceladosbl: number;
+  total_liquidobl: number;
+}
+
+export const fetchApiStoreDailyData = async (loja: string, startDate: string, endDate: string): Promise<ApiStoreDailyRow[]> => {
+  console.log('fetchApiStoreDailyData', loja, startDate, endDate);
+  const response = await fetch('/sec/resumoVendasLojaDiario', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      guididusuario: '2F913CCB-58FF-49B1-9794-C0984F909DEB',
+      loja,
+      datainicial: startDate,
+      datafinal: endDate,
+    }),
+  });
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+  const data: ApiStoreDailyRow[] = await response.json();
+  return data;
 };

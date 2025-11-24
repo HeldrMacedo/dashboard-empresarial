@@ -5,11 +5,20 @@ import { formatCurrency } from '../utils';
 interface Props {
   data: { name: string; value: number }[];
   metricLabel: string;
+  emptyMessage?: string;
 }
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 
-export const StoreComparisonPieChart: React.FC<Props> = ({ data, metricLabel }) => {
+export const StoreComparisonPieChart: React.FC<Props> = ({ data, metricLabel, emptyMessage = 'Sem dados para essa data' }) => {
+  const total = data.reduce((acc, curr) => acc + (curr.value || 0), 0);
+  if (total <= 0 || data.length === 0) {
+    return (
+      <div className="w-full h-[400px] flex items-center justify-center border border-slate-200 rounded-lg bg-slate-50">
+        <div className="text-slate-500 text-sm">{emptyMessage}</div>
+      </div>
+    );
+  }
   return (
     <div className="w-full h-[400px]">
       <ResponsiveContainer width="100%" height="100%">

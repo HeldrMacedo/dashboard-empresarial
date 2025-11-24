@@ -14,7 +14,13 @@ export default defineConfig(({ mode }) => {
             changeOrigin: true,
             secure: true,
           },
+          '/sec/resumoVendasLojaDiario': {
+            target: 'https://serv-api.ce.br.saveincloud.net.br',
+            changeOrigin: true,
+            secure: true,
+          }
         },
+        
       },
       plugins: [react()],
       define: {

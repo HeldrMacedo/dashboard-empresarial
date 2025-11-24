@@ -13,7 +13,8 @@ import {
   Calendar,
   LayoutDashboard
 } from 'lucide-react';
-import { generateMockData, getStores, getSummary, fetchApiSalesData, mapApiToSalesSummary } from './services/dataService';
+import { generateMockData, getStores, getSummary, fetchApiSalesData, mapApiToSalesSummary, fetchApiStoreDailyData } from './services/dataService';
+import type { ApiSalesMetric } from './services/dataService';
 import { SummaryCard } from './components/SummaryCard';
 import { StoreEvolutionChart } from './components/StoreEvolutionChart';
 import { StoreComparisonPieChart } from './components/StoreComparisonPieChart';
@@ -45,6 +46,7 @@ const App: React.FC = () => {
   const [pieMetric, setPieMetric] = useState<string>('total_notas');
   const [pieStartDate, setPieStartDate] = useState(todayStr);
   const [pieEndDate, setPieEndDate] = useState(todayStr);
+  const [pieApiData, setPieApiData] = useState<ApiSalesMetric[] | null>(null);
 
   // --- Analysis State (Now Bottom Section) ---
   const [selectedStoreId, setSelectedStoreId] = useState<string>('002');
@@ -104,30 +106,79 @@ const App: React.FC = () => {
     fetchData();
   }, [globalStartDate, globalEndDate, globalStoreId]);
 
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+
+      } catch (err) {
+
+      }
+    };
+  });
+
   const globalSummary = apiSummary;
 
-  const analysisData = useMemo(() => {
-    const rawData = generateMockData(analysisStartDate, analysisEndDate);
-    return rawData.filter(item => item.loja === selectedStoreId);
-  }, [analysisStartDate, analysisEndDate, selectedStoreId]);
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const apiData = await fetchApiSalesData(pieStartDate, pieEndDate);
+        setPieApiData(apiData);
+      } catch (err) {
+        setPieApiData(null);
+      }
+    };
+    fetchData();
+  }, [pieStartDate, pieEndDate]);
+
+  const [analysisData, setAnalysisData] = useState<any[]>([]);
+  useEffect(() => {
+    const fetchAnalysis = async () => {
+      try {
+        const apiRows = await fetchApiStoreDailyData(selectedStoreId, analysisStartDate, analysisEndDate);
+        const mapped = apiRows.map(r => ({
+          data: r.data,
+          loja: selectedStoreId,
+          total_notas: r.total_notas,
+          total_cancelados: r.total_cancelados,
+          total_devolvido: r.total_devolvido,
+          total_liquido: r.total_liquido,
+          total_vendabl: r.total_vendabl,
+          total_canceladosbl: r.total_canceladosbl,
+          total_liquidobl: r.total_liquidobl,
+        }));
+        setAnalysisData(mapped);
+      } catch (e) {
+        const raw = generateMockData(analysisStartDate, analysisEndDate).filter(item => item.loja === selectedStoreId);
+        setAnalysisData(raw);
+      }
+    };
+    fetchAnalysis();
+  }, [selectedStoreId, analysisStartDate, analysisEndDate]);
 
   const pieChartData = useMemo(() => {
+    const keyToTitle: Record<string, string> = {
+      total_notas: 'Total Notas',
+      total_cancelados: 'Total Cancelados',
+      total_devolvido: 'Total Devolvido',
+      total_liquido: 'Total Líquido',
+      total_vendabl: 'Total Venda BL',
+      total_liquidobl: 'Total Líquido BL',
+    };
+    if (pieApiData) {
+      const metricTitle = keyToTitle[pieMetric] || '';
+      const row = pieApiData.find(r => r.titulo === metricTitle);
+      const arr = stores.map(s => ({ name: s.name, value: Number((row as any)?.[s.id] || 0) }));
+      return arr.sort((a, b) => b.value - a.value);
+    }
     const rawData = generateMockData(pieStartDate, pieEndDate);
     const aggregated = rawData.reduce((acc, curr) => {
       const storeName = stores.find(s => s.id === curr.loja)?.name || curr.loja;
-      if (!acc[storeName]) {
-        acc[storeName] = 0;
-      }
-      // @ts-ignore
-      acc[storeName] += (curr[pieMetric] || 0);
+      if (!acc[storeName]) acc[storeName] = 0;
+      acc[storeName] += (curr as any)[pieMetric] || 0;
       return acc;
     }, {} as Record<string, number>);
-
-    return Object.entries(aggregated).map(([name, value]) => ({
-      name,
-      value
-    })).sort((a, b) => b.value - a.value);
-  }, [pieStartDate, pieEndDate, pieMetric, stores]);
+    return Object.entries(aggregated).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
+  }, [pieApiData, pieMetric, stores, pieStartDate, pieEndDate]);
 
   const selectedMetricLabel = METRIC_OPTIONS.find(m => m.key === pieMetric)?.label || '';
 
