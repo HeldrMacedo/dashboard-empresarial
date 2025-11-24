@@ -194,8 +194,8 @@ const App: React.FC = () => {
       <header className="bg-slate-900 text-white shadow-lg sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="bg-blue-600 p-2 rounded-lg">
-              <LayoutDashboard className="w-5 h-5 text-white" />
+            <div className="bg-white p-2 rounded-lg">
+              <img src="/assets/img/LOGO1.png" alt="Logo" className="w-8 h-8" />
             </div>
             <div>
               <h1 className="text-xl font-bold tracking-tight">Dashboard Empresarial</h1>
